@@ -18,7 +18,7 @@ else:
 uploaded_file = st.file_uploader("📂 시간표 엑셀 파일 업로드", type=["xlsx"])
 
 if uploaded_file:
-    df = pd.read_excel(uploaded_file)
+    df = pd.read_excel(uploaded_file, engine="openpyxl")
     df = df.fillna(method='ffill')  # 선생님/반명 등이 비어있으면 이전 값 채움
 
     student_schedules = defaultdict(list)
