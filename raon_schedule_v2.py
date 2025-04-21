@@ -6,10 +6,15 @@ import datetime
 st.set_page_config(page_title="라온 스케줄 작성앱 v2.0", layout="wide")
 st.title("📘 라온 스케줄 작성앱 v2.0")
 
-# 항목 리스트 정의
-teacher_list = ["조하현T", "김도윤T", "박하늘T"]
-class_list = ["M3A1", "M3A2", "M3A3", "M3A4"]
-course_list = ["고1 수학", "고2 수학", "고2 심화수학", "고3 확통"]
+# 선생님 리스트
+teacher_list = ["이윤로T", "정주빈T", "김서진T", "조하현T", "류승연T", "임인섭T"]
+
+# 수업과정 리스트 (2단계 구조)
+course_category = {
+    "초등부": ["초1-1", "초1-2", "초2-1", "초2-2", "초3-1", "초3-2", "초4-1", "초4-2", "초5-1", "초5-2", "초6-1", "초6-2"],
+    "중등부": ["중1-1", "중1-2", "중2-1", "중2-2", "중3-1", "중3-2"],
+    "고등부": ["공통수학1", "공통수학2", "대수", "미적분1", "미적분2", "확률과 통계", "기하", "수학1", "수학2", "미적분"]
+}
 
 # 시간표 유형 선택
 type_option = st.radio("🗂️ 시간표 유형을 선택하세요", ["정규 시간표", "시험대비 시간표"])
@@ -26,7 +31,7 @@ with st.expander("👤 학생 기본 정보 입력"):
 
     col4, col5 = st.columns(2)
     with col4:
-        class_name = st.selectbox("반명", class_list)
+        class_name = st.text_input("반명")
     with col5:
         teacher_name = st.selectbox("담임선생님", teacher_list)
 
@@ -41,11 +46,9 @@ with st.expander("📆 적용 기간 설정"):
 # 수업 정보 (정규 시간표용)
 if type_option == "정규 시간표":
     with st.expander("📘 수업 정보 입력"):
-        col1, col2 = st.columns(2)
-        with col1:
-            course = st.selectbox("수업과정명", course_list)
-        with col2:
-            textbook = st.text_input("교재명 (예: 쎈 수학)")
+        category = st.selectbox("과정 카테고리 선택", list(course_category.keys()))
+        course = st.selectbox("수업과정명 선택", course_category[category])
+        textbook = st.text_input("교재명 (예: 쎈 수학)")
 
 # 시험대비 정보 입력
 if type_option == "시험대비 시간표":
@@ -83,7 +86,7 @@ with st.expander("📤 엑셀 파일로 시간표 불러오기"):
 
 # 미리보기
 with st.expander("👀 미리보기"):
-    st.markdown(f"### 🧾 {student_name} 학생 ({school} {grade}) - {class_name}반 ({teacher_name})")
+    st.markdown(f"### 🧾 {student_name} 학생 ({school} {grade}) - {class_name}반 / 담임: {teacher_name}")
     st.markdown(f"**적용 기간:** {start_date.strftime('%Y-%m-%d')} ~ {end_date.strftime('%Y-%m-%d')}")
     if type_option == "정규 시간표" and 'course' in locals():
         st.markdown(f"**과정:** {course} / **교재:** {textbook}")
