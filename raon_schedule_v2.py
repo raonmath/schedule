@@ -16,6 +16,23 @@ course_category = {
     "고등부": ["공통수학1", "공통수학2", "대수", "미적분1", "미적분2", "확률과 통계", "기하", "수학1", "수학2", "미적분"]
 }
 
+# 워터마크 (웹 전용, 인쇄 시 제외)
+st.markdown(
+    '''
+    <style>
+    .watermark {
+        position: fixed;
+        bottom: 5%;
+        right: 5%;
+        z-index: -1;
+        opacity: 0.08;
+    }
+    </style>
+    <img class="watermark" src="https://raon-schedule.streamlit.app/raon_logo.png" width="300">
+    ''',
+    unsafe_allow_html=True
+)
+
 # 시간표 유형 선택
 type_option = st.radio("🗂️ 시간표 유형을 선택하세요", ["정규 시간표", "시험대비 시간표"])
 
@@ -86,11 +103,16 @@ with st.expander("📤 엑셀 파일로 시간표 불러오기"):
 
 # 미리보기
 with st.expander("👀 미리보기"):
-    st.markdown(f"### 🧾 {student_name} 학생 ({school} {grade}) - {class_name}반 / 담임: {teacher_name}")
-    st.markdown(f"**적용 기간:** {start_date.strftime('%Y-%m-%d')} ~ {end_date.strftime('%Y-%m-%d')}")
-    if type_option == "정규 시간표" and selected_courses:
-        st.markdown(f"**과정:** {', '.join(selected_courses)} / **교재:** {textbook}")
-    elif type_option == "시험대비 시간표" and 'exam_start' in locals():
-        st.markdown(f"**시험기간:** {exam_start.strftime('%Y-%m-%d')} ~ {exam_end.strftime('%Y-%m-%d')} / 수학시험일: {math_exam_date.strftime('%Y-%m-%d')}")
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        st.markdown(f"### 🧾 {student_name} 학생 ({school} {grade}) - {class_name}반 / 담임: {teacher_name}")
+        st.markdown(f"**적용 기간:** {start_date.strftime('%Y-%m-%d')} ~ {end_date.strftime('%Y-%m-%d')}")
+        if type_option == "정규 시간표" and selected_courses:
+            st.markdown(f"**과정:** {', '.join(selected_courses)} / **교재:** {textbook}")
+        elif type_option == "시험대비 시간표" and 'exam_start' in locals():
+            st.markdown(f"**시험기간:** {exam_start.strftime('%Y-%m-%d')} ~ {exam_end.strftime('%Y-%m-%d')} / 수학시험일: {math_exam_date.strftime('%Y-%m-%d')}")
+    with col2:
+        st.image("raon_logo.png", width=100)
+
     st.write("---")
     st.dataframe(time_table, use_container_width=True)
