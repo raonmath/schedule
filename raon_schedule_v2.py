@@ -6,19 +6,9 @@ import datetime
 st.set_page_config(page_title="라온 스케줄 작성앱 v2.0", layout="wide")
 st.title("📘 라온 스케줄 작성앱 v2.0")
 
-# 선생님 리스트
-teacher_list = ["이윤로T", "정주빈T", "김서진T", "조하현T", "류승연T", "임인섭T"]
-
-# 수업과정 리스트 (2단계 구조)
-course_category = {
-    "초등부": ["초1-1", "초1-2", "초2-1", "초2-2", "초3-1", "초3-2", "초4-1", "초4-2", "초5-1", "초5-2", "초6-1", "초6-2"],
-    "중등부": ["중1-1", "중1-2", "중2-1", "중2-2", "중3-1", "중3-2"],
-    "고등부": ["공통수학1", "공통수학2", "대수", "미적분1", "미적분2", "확률과 통계", "기하", "수학1", "수학2", "미적분"]
-}
-
-# 워터마크 (웹 전용, 인쇄 시 제외)
+# 워터마크 이미지 (웹에서만 표시)
 st.markdown(
-    '''
+    """
     <style>
     .watermark {
         position: fixed;
@@ -29,14 +19,22 @@ st.markdown(
     }
     </style>
     <img class="watermark" src="https://raon-schedule.streamlit.app/raon_logo.png" width="300">
-    ''',
+    """,
     unsafe_allow_html=True
 )
+
+# 기본 항목
+teacher_list = ["이윤로T", "정주빈T", "김서진T", "조하현T", "류승연T", "임인섭T"]
+course_category = {
+    "초등부": ["초1-1", "초1-2", "초2-1", "초2-2", "초3-1", "초3-2", "초4-1", "초4-2", "초5-1", "초5-2", "초6-1", "초6-2"],
+    "중등부": ["중1-1", "중1-2", "중2-1", "중2-2", "중3-1", "중3-2"],
+    "고등부": ["공통수학1", "공통수학2", "대수", "미적분1", "미적분2", "확률과 통계", "기하", "수학1", "수학2", "미적분"]
+}
 
 # 시간표 유형 선택
 type_option = st.radio("🗂️ 시간표 유형을 선택하세요", ["정규 시간표", "시험대비 시간표"])
 
-# 학생 정보 입력
+# 기본 정보 입력
 with st.expander("👤 학생 기본 정보 입력"):
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -60,23 +58,50 @@ with st.expander("📆 적용 기간 설정"):
     with col2:
         end_date = st.date_input("종료일", value=datetime.date.today() + datetime.timedelta(days=30))
 
-# 수업 정보 (정규 시간표용)
+# 정규 시간표 정보
 if type_option == "정규 시간표":
     with st.expander("📘 수업 정보 입력"):
         category = st.selectbox("과정 카테고리 선택", list(course_category.keys()))
         selected_courses = st.multiselect("수업과정명 선택 (복수 선택 가능)", course_category[category])
         textbook = st.text_input("교재명 (예: 쎈 수학)")
 
-# 시험대비 정보 입력
+# 시험 대비 시간표 입력 + 자동 일정 생성
 if type_option == "시험대비 시간표":
-    with st.expander("📝 시험 정보 입력"):
+    with st.expander("📝 시험 정보 입력 및 자동 일정표 생성"):
         col1, col2, col3 = st.columns(3)
         with col1:
-            exam_start = st.date_input("시험 시작일")
+            custom_start = st.date_input("일정표 시작일", value=datetime.date.today())
         with col2:
-            exam_end = st.date_input("시험 종료일")
+            custom_end = st.date_input("일정표 종료일", value=datetime.date.today() + datetime.timedelta(days=13))
         with col3:
-            math_exam_date = st.date_input("수학 시험일")
+            math_exam = st.date_input("수학 시험일")
+
+        briefing_time = st.text_input("수학 직보 시간 입력 (예: 18:30 ~ 21:00)", value="18:30 ~ 21:00")
+
+        if custom_end < custom_start:
+            st.error("⛔ 종료일이 시작일보다 빠를 수 없습니다.")
+        elif math_exam < custom_start or math_exam > custom_end:
+            st.warning("⚠️ 수학 시험일이 일정표 범위 안에 있어야 합니다.")
+        else:
+            df = pd.date_range(start=custom_start, end=custom_end)
+            schedule_data = []
+            for d in df:
+                day = d.strftime('%A')
+                tag = "일반"
+                note = ""
+                if d.date() == math_exam:
+                    tag = "수학 시험 🧾"
+                elif d.date() == (math_exam - datetime.timedelta(days=1)):
+                    tag = "직보 📝"
+                    note = briefing_time
+                schedule_data.append({
+                    "날짜": d.strftime('%Y-%m-%d'),
+                    "요일": day,
+                    "일정 구분": tag,
+                    "학습 내용": note
+                })
+            exam_schedule_df = pd.DataFrame(schedule_data)
+            st.data_editor(exam_schedule_df, use_container_width=True)
 
 # 시간표 직접 입력
 with st.expander("📋 시간표 직접 입력"):
@@ -107,10 +132,10 @@ with st.expander("👀 미리보기"):
     with col1:
         st.markdown(f"### 🧾 {student_name} 학생 ({school} {grade}) - {class_name}반 / 담임: {teacher_name}")
         st.markdown(f"**적용 기간:** {start_date.strftime('%Y-%m-%d')} ~ {end_date.strftime('%Y-%m-%d')}")
-        if type_option == "정규 시간표" and selected_courses:
+        if type_option == "정규 시간표" and 'selected_courses' in locals():
             st.markdown(f"**과정:** {', '.join(selected_courses)} / **교재:** {textbook}")
-        elif type_option == "시험대비 시간표" and 'exam_start' in locals():
-            st.markdown(f"**시험기간:** {exam_start.strftime('%Y-%m-%d')} ~ {exam_end.strftime('%Y-%m-%d')} / 수학시험일: {math_exam_date.strftime('%Y-%m-%d')}")
+        elif type_option == "시험대비 시간표" and 'math_exam' in locals():
+            st.markdown(f"**시험기간:** {custom_start.strftime('%Y-%m-%d')} ~ {custom_end.strftime('%Y-%m-%d')} / 수학시험일: {math_exam.strftime('%Y-%m-%d')}")
     with col2:
         st.image("raon_logo.png", width=100)
 
