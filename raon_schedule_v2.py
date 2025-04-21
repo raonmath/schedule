@@ -60,8 +60,7 @@ for date in date_range:
 
     # 수업 제외 조건
     if not (exam_start - datetime.timedelta(days=1) <= date.date() <= exam_end):
-        entry["일정"] += "정규 수업
-"
+        entry["일정"] += "정규 수업\n"
 
     rows.append(entry)
 
