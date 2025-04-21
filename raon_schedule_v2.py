@@ -47,7 +47,7 @@ with st.expander("📆 적용 기간 설정"):
 if type_option == "정규 시간표":
     with st.expander("📘 수업 정보 입력"):
         category = st.selectbox("과정 카테고리 선택", list(course_category.keys()))
-        course = st.selectbox("수업과정명 선택", course_category[category])
+        selected_courses = st.multiselect("수업과정명 선택 (복수 선택 가능)", course_category[category])
         textbook = st.text_input("교재명 (예: 쎈 수학)")
 
 # 시험대비 정보 입력
@@ -88,8 +88,8 @@ with st.expander("📤 엑셀 파일로 시간표 불러오기"):
 with st.expander("👀 미리보기"):
     st.markdown(f"### 🧾 {student_name} 학생 ({school} {grade}) - {class_name}반 / 담임: {teacher_name}")
     st.markdown(f"**적용 기간:** {start_date.strftime('%Y-%m-%d')} ~ {end_date.strftime('%Y-%m-%d')}")
-    if type_option == "정규 시간표" and 'course' in locals():
-        st.markdown(f"**과정:** {course} / **교재:** {textbook}")
+    if type_option == "정규 시간표" and selected_courses:
+        st.markdown(f"**과정:** {', '.join(selected_courses)} / **교재:** {textbook}")
     elif type_option == "시험대비 시간표" and 'exam_start' in locals():
         st.markdown(f"**시험기간:** {exam_start.strftime('%Y-%m-%d')} ~ {exam_end.strftime('%Y-%m-%d')} / 수학시험일: {math_exam_date.strftime('%Y-%m-%d')}")
     st.write("---")
