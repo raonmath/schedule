@@ -3,141 +3,86 @@ import streamlit as st
 import pandas as pd
 import datetime
 
-st.set_page_config(page_title="라온 스케줄 작성앱 v2.0", layout="wide")
-st.title("📘 라온 스케줄 작성앱 v2.0")
-
-# 워터마크 이미지 (웹에서만 표시)
-st.markdown(
-    """
-    <style>
-    .watermark {
-        position: fixed;
-        bottom: 5%;
-        right: 5%;
-        z-index: -1;
-        opacity: 0.08;
-    }
-    </style>
-    <img class="watermark" src="https://raon-schedule.streamlit.app/raon_logo.png" width="300">
-    """,
-    unsafe_allow_html=True
-)
-
-# 기본 항목
-teacher_list = ["이윤로T", "정주빈T", "김서진T", "조하현T", "류승연T", "임인섭T"]
-course_category = {
-    "초등부": ["초1-1", "초1-2", "초2-1", "초2-2", "초3-1", "초3-2", "초4-1", "초4-2", "초5-1", "초5-2", "초6-1", "초6-2"],
-    "중등부": ["중1-1", "중1-2", "중2-1", "중2-2", "중3-1", "중3-2"],
-    "고등부": ["공통수학1", "공통수학2", "대수", "미적분1", "미적분2", "확률과 통계", "기하", "수학1", "수학2", "미적분"]
-}
-
-# 시간표 유형 선택
-type_option = st.radio("🗂️ 시간표 유형을 선택하세요", ["정규 시간표", "시험대비 시간표"])
+# 앱 기본 설정
+st.set_page_config(page_title="시험 대비 시간표 달력 뷰", layout="wide")
+st.title("📘 시험 대비 시간표 (달력 뷰 + 인쇄용 카드)")
 
 # 기본 정보 입력
-with st.expander("👤 학생 기본 정보 입력"):
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        student_name = st.text_input("학생명")
-    with col2:
-        school = st.text_input("학교명")
-    with col3:
-        grade = st.text_input("학년")
+with st.sidebar:
+    st.header("👤 학생 정보")
+    student_name = st.text_input("이름", "이라온")
+    class_name = st.text_input("반명", "3반")
+    teacher_name = st.text_input("담임 선생님", "이윤로T")
 
-    col4, col5 = st.columns(2)
-    with col4:
-        class_name = st.text_input("반명")
-    with col5:
-        teacher_name = st.selectbox("담임선생님", teacher_list)
+    st.markdown("---")
+    st.subheader("📅 기간 설정")
+    start_date = st.date_input("적용 시작일", value=datetime.date.today())
+    end_date = st.date_input("적용 종료일", value=start_date + datetime.timedelta(days=13))
 
-# 기간 설정
-with st.expander("📆 적용 기간 설정"):
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input("시작일", value=datetime.date.today())
-    with col2:
-        end_date = st.date_input("종료일", value=datetime.date.today() + datetime.timedelta(days=30))
+    exam_start = st.date_input("시험 시작일", value=end_date - datetime.timedelta(days=5))
+    exam_end = st.date_input("시험 종료일", value=end_date)
 
-# 정규 시간표 정보
-if type_option == "정규 시간표":
-    with st.expander("📘 수업 정보 입력"):
-        category = st.selectbox("과정 카테고리 선택", list(course_category.keys()))
-        selected_courses = st.multiselect("수업과정명 선택 (복수 선택 가능)", course_category[category])
-        textbook = st.text_input("교재명 (예: 쎈 수학)")
+    st.markdown("---")
+    st.subheader("📚 시험 과목 입력")
+    num_subjects = st.number_input("시험 과목 수", min_value=1, max_value=10, value=3, step=1)
 
-# 시험 대비 시간표 입력 + 자동 일정 생성
-if type_option == "시험대비 시간표":
-    with st.expander("📝 시험 정보 입력 및 자동 일정표 생성"):
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            custom_start = st.date_input("일정표 시작일", value=datetime.date.today())
-        with col2:
-            custom_end = st.date_input("일정표 종료일", value=datetime.date.today() + datetime.timedelta(days=13))
-        with col3:
-            math_exam = st.date_input("수학 시험일")
+    subjects = []
+    for i in range(num_subjects):
+        st.markdown(f"**과목 {i+1}**")
+        subj = st.text_input(f"과목명 {i+1}", key=f"subj_{i}")
+        exam_day = st.date_input(f"시험일 {i+1}", value=exam_start + datetime.timedelta(days=i), key=f"exam_{i}")
+        brief_time = st.text_input(f"직보 시간 {i+1}", "18:30 ~ 21:00", key=f"time_{i}")
+        subjects.append({"과목명": subj, "시험일": exam_day, "직보시간": brief_time})
 
-        briefing_time = st.text_input("수학 직보 시간 입력 (예: 18:30 ~ 21:00)", value="18:30 ~ 21:00")
+# 날짜 생성
+date_range = pd.date_range(start=start_date, end=end_date)
+rows = []
 
-        if custom_end < custom_start:
-            st.error("⛔ 종료일이 시작일보다 빠를 수 없습니다.")
-        elif math_exam < custom_start or math_exam > custom_end:
-            st.warning("⚠️ 수학 시험일이 일정표 범위 안에 있어야 합니다.")
-        else:
-            df = pd.date_range(start=custom_start, end=custom_end)
-            schedule_data = []
-            for d in df:
-                day = d.strftime('%A')
-                tag = "일반"
-                note = ""
-                if d.date() == math_exam:
-                    tag = "수학 시험 🧾"
-                elif d.date() == (math_exam - datetime.timedelta(days=1)):
-                    tag = "직보 📝"
-                    note = briefing_time
-                schedule_data.append({
-                    "날짜": d.strftime('%Y-%m-%d'),
-                    "요일": day,
-                    "일정 구분": tag,
-                    "학습 내용": note
-                })
-            exam_schedule_df = pd.DataFrame(schedule_data)
-            st.data_editor(exam_schedule_df, use_container_width=True)
+# 일정 채우기
+for date in date_range:
+    day_str = date.strftime("%Y-%m-%d")
+    weekday = date.strftime("%A")
+    entry = {
+        "날짜": day_str,
+        "요일": weekday,
+        "일정": "",
+        "학습 내용": ""
+    }
 
-# 시간표 직접 입력
-with st.expander("📋 시간표 직접 입력"):
-    st.write("요일, 시간, 과목 정보를 직접 입력하세요.")
-    time_table = st.data_editor(pd.DataFrame({
-        "요일": ["월", "수"],
-        "시간": ["19:30 ~ 21:00", "19:30 ~ 21:00"],
-        "과목": ["수학Ⅰ", "수학Ⅱ"]
-    }), num_rows="dynamic")
+    # 과목별 직보/시험 자동 삽입
+    for subj in subjects:
+        exam_day = subj["시험일"]
+        briefing_day = exam_day - datetime.timedelta(days=1)
+        if date.date() == exam_day:
+            entry["일정"] += f"{subj['과목명']} 시험 🧾\n"
+        elif date.date() == briefing_day:
+            entry["일정"] += f"{subj['과목명']} 직보 📝 ({subj['직보시간']})\n"
 
-# 파일 업로드
-with st.expander("📤 엑셀 파일로 시간표 불러오기"):
-    uploaded_file = st.file_uploader("엑셀 또는 CSV 파일을 업로드하세요", type=["xlsx", "csv"])
-    if uploaded_file:
-        try:
-            if uploaded_file.name.endswith("csv"):
-                uploaded_df = pd.read_csv(uploaded_file)
-            else:
-                uploaded_df = pd.read_excel(uploaded_file)
-            st.success("✅ 파일 업로드 성공!")
-            st.dataframe(uploaded_df)
-        except Exception as e:
-            st.error(f"❌ 파일을 읽는 중 오류 발생: {e}")
+    # 수업 제외 조건
+    if not (exam_start - datetime.timedelta(days=1) <= date.date() <= exam_end):
+        entry["일정"] += "정규 수업
+"
 
-# 미리보기
-with st.expander("👀 미리보기"):
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        st.markdown(f"### 🧾 {student_name} 학생 ({school} {grade}) - {class_name}반 / 담임: {teacher_name}")
-        st.markdown(f"**적용 기간:** {start_date.strftime('%Y-%m-%d')} ~ {end_date.strftime('%Y-%m-%d')}")
-        if type_option == "정규 시간표" and 'selected_courses' in locals():
-            st.markdown(f"**과정:** {', '.join(selected_courses)} / **교재:** {textbook}")
-        elif type_option == "시험대비 시간표" and 'math_exam' in locals():
-            st.markdown(f"**시험기간:** {custom_start.strftime('%Y-%m-%d')} ~ {custom_end.strftime('%Y-%m-%d')} / 수학시험일: {math_exam.strftime('%Y-%m-%d')}")
-    with col2:
-        st.image("raon_logo.png", width=100)
+    rows.append(entry)
 
-    st.write("---")
-    st.dataframe(time_table, use_container_width=True)
+# 달력 형식으로 변환
+df = pd.DataFrame(rows)
+df["날짜"] = pd.to_datetime(df["날짜"])
+df["주"] = df["날짜"].dt.isocalendar().week
+weeks = df["주"].unique()
+
+st.markdown("## 🗓️ 달력 형식 시간표")
+
+for week in weeks:
+    st.markdown(f"### 📅 Week {week}")
+    week_df = df[df["주"] == week]
+    week_df = week_df.sort_values("날짜")
+
+    cols = st.columns(7)
+    for i, (_, row) in enumerate(week_df.iterrows()):
+        with cols[row["날짜"].weekday()]:
+            st.markdown(f"**{row['날짜'].strftime('%m/%d')} ({row['요일'][0]})**")
+            st.markdown(f"`{row['일정'].strip()}`")
+            st.text_input("학습 내용", key=str(row["날짜"]))
+
+st.success("✅ 시간표가 달력 형식으로 출력되었습니다. 인쇄는 브라우저 인쇄(ctrl+P) 또는 PDF로 저장을 활용하세요.")
