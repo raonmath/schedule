@@ -11,7 +11,7 @@ import datetime
 # -----------------------
 def check_password():
     def password_entered():
-        if st.session_state["password"] == " ":
+        if st.session_state["password"] == "raon":
             st.session_state["password_correct"] = True
             del st.session_state["password"]
         else:
